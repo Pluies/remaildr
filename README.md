@@ -31,8 +31,8 @@ It might. But Daemons has a built-in monitoring, so if any of the script indeed 
 The problem is if `receivr.rb` crashes on a particularly badly-handled message, it might fail at reboot and keep failing. Deleting problematic message in the POP inbox is TODO at the moment.
 
 
-	[1]: [https://github.com/Pluies/remaildr/blob/master/bin/receivr_daemon.rb] "Receivr"
-	[2]: [https://github.com/Pluies/remaildr/blob/master/bin/sendr_daemon.rb] "Sendr"
-	[3]: [http://www.uponmyshoulder.com/blog/2010/remaildr-the-tech-bits/] "blog post"
-	[4]: [daemons.rubyforge.org]
-	[5]: [https://github.com/Pluies/remaildr/blob/master/bin/status.sh]
+  [1]: [https://github.com/Pluies/remaildr/blob/master/bin/receivr_daemon.rb] "Receivr"
+  [2]: [https://github.com/Pluies/remaildr/blob/master/bin/sendr_daemon.rb] "Sendr"
+  [3]: [http://www.uponmyshoulder.com/blog/2010/remaildr-the-tech-bits/] "blog post"
+  [4]: [daemons.rubyforge.org]
+  [5]: [https://github.com/Pluies/remaildr/blob/master/bin/status.sh]
