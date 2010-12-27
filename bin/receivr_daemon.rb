@@ -27,7 +27,7 @@ Daemons.run_proc('receivr.rb', daemon_options) do
 			:address             => "localhost",
 			:port                => 110,
 			:user_name           => 'remind',
-			:password            => 'r3mind',
+			:password            => 'r3mind', # As you might expect, this is not the actual password. ;)
 			:enable_ssl          => false,
 		}
 		delivery_method :sendmail
