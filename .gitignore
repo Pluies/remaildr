@@ -1,0 +1,6 @@
+# Things not to share: production DB, PIDs and logs.
+db/remaildrs.db
+run/*
+logs/*.log
+
+*.swp
