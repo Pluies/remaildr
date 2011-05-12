@@ -5,75 +5,67 @@ require 'mail'
 # Basically just a wrapper for the email to send,
 # plus some helper methods to build it up.
 class Remaildr
-	attr_accessor :orig_mail, :remaildr
+	attr_accessor :orig_mail, :remaildr, :send_at
 	def initialize(orig_mail)
 		@orig_mail = orig_mail
-		@remaildr = Mail.new
+		@remaildr = @orig_mail.dup
+		# Now we duplicated the incoming mail, let's add our data		
+		@remaildr.received = nil
+		@remaildr.message_id = nil
 		@remaildr.delivery_method :sendmail
-		@remaildr.from = "Remaildr <remind@remaildr.com>"
 		@remaildr.to = @orig_mail.from.first
+		@remaildr.from = "Remaildr <remind@remaildr.com>"
 		@remaildr.subject = if @orig_mail.subject != nil # Beware of the nil access. Mail makes subject "nil" when empty
 					    "Remaildr: " + @orig_mail.subject
 				    else
 					    "Remaildr"
 				    end
-		if @orig_mail.has_charset?
-			@remaildr.charset = @orig_mail.charset
-		end
-		if @orig_mail.has_mime_version?
-			@remaildr.mime_version = @orig_mail.mime_version
-		end
-		# Extract the plaintext and the html part of the message.
-		# Each other part, such as attachments, will be dropped.
-		if @orig_mail.multipart?
-			@orig_mail.parts.each do |p|
-				@remaildr.text_part = p if p.content_type =~ /plain/
-				@remaildr.html_part = p if p.content_type =~ /html/
-			end
-		else
-			@remaildr.body = @orig_mail.body.decoded
-			@remaildr.body.charset = @orig_mail.body.charset unless @orig_mail.body.charset == nil
-			@remaildr.content_type = @orig_mail.content_type unless @orig_mail.content_type == nil
-		end 
+		# Detects if the remaildr is valid and computes when to send it, based
+		# on the address it was sent to and when it arrived
+		compute_delay
 	end
 
 	def send!
 		@remaildr.deliver!
 	end
 
+	# Forward the messages who don't conform to time@remaildr
 	def forward!
 		@remaildr.subject = "#{@remaildr.subject} (from #{@orig_mail.from.first} to #{remaildr_address})"
 		@remaildr.to = "florent"
 		@remaildr.deliver!
 	end
 
-	# Compute when to send the remaildr, based on the address
-	# it was sent to and when it arrived
-	def send_at
+	def remaildr?
+		 return @remaildr_detected
+	end
+
+	def compute_delay
 		sent_to = remaildr_address
 		received_at = @orig_mail.date
-		delay = if sent_to =~ /test/
-				0.0
-			elsif sent_to =~ /i?n?(\d+)(mn?|minutes?)/
-				($1.to_i)/24.0/60.0
-			elsif sent_to =~ /i?n?(\d+)(hours?|hrs?|hs?)(\d+)?/
-				if $3 # Catches 1h15@, etc
-					($1.to_i)/24.0 + ($3.to_i)/24.0/60.0
-				else # Simple nhour@
-					($1.to_i)/24.0
-				end
-			elsif sent_to =~ /i?n?(\d+)(d|days?)/
-				$1.to_i
-			end
-		# only return something if the delay is between now and 7 days
-		if (0..7) === delay
-			return received_at + delay
-		else
-			return nil
+		delay = 0.0
+		if sent_to =~ /test/
+			@remaildr_detected = true
+		end
+		if sent_to =~ /(\d+)(mn?|mi?n|minute|minuta)s?/
+			@remaildr_detected = true
+			delay += ($1.to_i)/24.0/60.0
+		end
+		if sent_to =~ /(\d+)(hr?|hour|heure|hora|stunde)s?/
+			@remaildr_detected = true
+			delay += ($1.to_i)/24.0
+		end
+		if sent_to =~ /(\d+)(d|day|j|jour|dia|tag)s?/
+			@remaildr_detected = true
+			delay += $1.to_i
+		end
+		# only accept if the delay is between now and 30 days
+		if (0..30) === delay
+			@send_at = received_at + delay
 		end
 	end
 
-	# In case the remaildr was sent to other people too
+	# Find the actual @remaildr.com address the mail was sent to
 	def remaildr_address
 		# X-Original-To is set by Postfix because of the catch-all. Should work all the time.
 		if @orig_mail.header["x-original-to"]

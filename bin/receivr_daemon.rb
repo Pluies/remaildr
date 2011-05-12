@@ -27,7 +27,7 @@ Daemons.run_proc('receivr.rb', daemon_options) do
 			:address             => "localhost",
 			:port                => 110,
 			:user_name           => 'remind',
-			:password            => 'r3mind', # As you might expect, this is not the actual password. ;)
+			:password            => 'fakepass',
 			:enable_ssl          => false,
 		}
 		delivery_method :sendmail
@@ -35,7 +35,7 @@ Daemons.run_proc('receivr.rb', daemon_options) do
 
 	db = SQLite3::Database.new base+"db/remaildrs.db"
 	log = Logger.new base+'logs/receivr.log', 10, 2048000
-	log.level = Logger::DEBUG
+	log.level = Logger::INFO
 	log.info "Launching receivr daemon..."
 
 
@@ -50,26 +50,26 @@ Daemons.run_proc('receivr.rb', daemon_options) do
 
 		# Check POP account for new mails
 		inbox.each do |received_mail|
-			re = Remaildr.new received_mail
-			log.debug re.remaildr.to_s
-			log.info "SENT_TO " + re.remaildr_address
-			if re.send_at
-				send_at_str = re.send_at.new_offset(0).strftime('%Y-%m-%d %H:%M:%S')
+			new_mail = Remaildr.new received_mail
+			log.debug new_mail.remaildr.to_s
+			log.info "SENT_TO " + new_mail.remaildr_address
+			if new_mail.remaildr?
+				send_at_str = new_mail.send_at.new_offset(0).strftime('%Y-%m-%d %H:%M:%S')
 				log.debug send_at_str
 				begin
 					db.execute("insert into remaildrs(send_at, msg) values (:send_at, :remaildr)",
 						   :send_at => send_at_str,
-						   :remaildr => Base64.encode64(Marshal.dump(re.remaildr)) )
+						   :remaildr => Base64.encode64(Marshal.dump(new_mail.remaildr)) )
 				rescue
-					log.error "Problem while inserting mail into DB: " + re
+					log.error "Problem while inserting mail into DB: " + new_mail
 				end
 			else
-				re.forward!
+				new_mail.forward!
 			end
 		end
 		Mail.delete_all
 
-		sleep 5
+		sleep 10
 	end
 end
 
