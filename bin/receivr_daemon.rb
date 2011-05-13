@@ -53,15 +53,21 @@ Daemons.run_proc('receivr.rb', daemon_options) do
 			new_mail = Remaildr.new received_mail
 			log.debug new_mail.remaildr.to_s
 			log.info "SENT_TO " + new_mail.remaildr_address
-			if new_mail.remaildr?
+			if new_mail.valid_remaildr?
 				send_at_str = new_mail.send_at.new_offset(0).strftime('%Y-%m-%d %H:%M:%S')
 				log.debug send_at_str
+				retries = 5
 				begin
 					db.execute("insert into remaildrs(send_at, msg) values (:send_at, :remaildr)",
 						   :send_at => send_at_str,
 						   :remaildr => Base64.encode64(Marshal.dump(new_mail.remaildr)) )
-				rescue
-					log.error "Problem while inserting mail into DB: " + new_mail
+				rescue Exception
+					sleep 0.01
+					if (retries -= 1) > 0
+						retry
+					else
+						log.error "Problem while inserting mail into DB: " + new_mail
+					end
 				end
 			else
 				new_mail.forward!
