@@ -7,7 +7,7 @@ require 'date'
 require 'logger'
 require 'mail'
 require 'remaildr'
-require 'sqlite3'
+require 'pg'
 
 base = File.dirname(File.expand_path(__FILE__)).gsub(/bin$/, "") # i.e. the folder just above us
 
@@ -21,23 +21,17 @@ daemon_options = {
 
 Daemons.run_proc('sendr.rb', daemon_options) do
 
-	db = SQLite3::Database.new base+"db/remaildrs.db"
+	db = PGconn.open(:dbname => 'remaildr')
 	log = Logger.new base+'logs/sendr.log', 10, 2048000
 	log.level = Logger::INFO
 	log.info "Launching sendr daemon..."
 
 	loop do
 		# Send any email that need sending
-		retries = 5
 		begin
-			result = db.execute("select id, send_at, msg from remaildrs where send_at < ?", DateTime.now.strftime('%Y-%m-%d %H:%M:%S') )
-		rescue Exception
-			sleep 0.01
-			if (retries -= 1) > 0
-				retry
-			else
-				log.error "Can't get mail from DB"
-			end
+			result = db.exec("SELECT id, send_at, msg FROM remaildrs WHERE send_at < $1", [DateTime.now.strftime('%Y-%m-%d %H:%M:%S')])
+		rescue
+			log.error "Can't get mail from DB"
 		end
 
 
@@ -46,11 +40,11 @@ Daemons.run_proc('sendr.rb', daemon_options) do
 		all_start_time = Time.now
 		result.each do |row|
 			start_time = Time.now
-			remaildr = Marshal.load( Base64.decode64(row[2]) )
+			remaildr = Marshal.load( Base64.decode64(row['msg']) )
 			marshalled_time = Time.now
 			remaildr.deliver!
 			delivered_time = Time.now
-			db.execute("delete from remaildrs where id=?", row[0])
+			db.exec("DELETE FROM remaildrs WHERE id=$1", [row['id']])
 			log.info "Marshall: #{marshalled_time - start_time}s, deliver: #{delivered_time - marshalled_time}, delete: #{Time.now - delivered_time}s"
 		end
 		log.info "#{result.count.to_s} remaildrs processed in #{Time.now - all_start_time} seconds" if result.count > 0

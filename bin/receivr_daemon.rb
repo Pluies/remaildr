@@ -7,7 +7,7 @@ require 'date'
 require 'logger'
 require 'mail'
 require 'remaildr'
-require 'sqlite3'
+require 'pg'
 
 base = File.dirname(File.expand_path(__FILE__)).gsub(/bin$/, "") # i.e. the folder just above us
 
@@ -33,7 +33,7 @@ Daemons.run_proc('receivr.rb', daemon_options) do
 		delivery_method :sendmail
 	end
 
-	db = SQLite3::Database.new base+"db/remaildrs.db"
+	db = PGconn.open(:dbname => 'remaildr')
 	log = Logger.new base+'logs/receivr.log', 10, 2048000
 	log.level = Logger::INFO
 	log.info "Launching receivr daemon..."
@@ -56,18 +56,11 @@ Daemons.run_proc('receivr.rb', daemon_options) do
 			if new_mail.valid_remaildr?
 				send_at_str = new_mail.send_at.new_offset(0).strftime('%Y-%m-%d %H:%M:%S')
 				log.debug send_at_str
-				retries = 5
 				begin
-					db.execute("insert into remaildrs(send_at, msg) values (:send_at, :remaildr)",
-						   :send_at => send_at_str,
-						   :remaildr => Base64.encode64(Marshal.dump(new_mail.remaildr)) )
-				rescue Exception
-					sleep 0.01
-					if (retries -= 1) > 0
-						retry
-					else
-						log.error "Problem while inserting mail into DB: " + new_mail
-					end
+					db.exec("INSERT INTO remaildrs(send_at, msg) VALUES($1, $2)",
+						[send_at_str, Base64.encode64(Marshal.dump(new_mail.remaildr))])
+				rescue
+					log.error "Problem while inserting mail into DB: " + new_mail
 				end
 			else
 				new_mail.forward!
