@@ -6,7 +6,7 @@ require 'daemons'
 require 'date'
 require 'logger'
 require 'mail'
-require 'remaildr'
+require './remaildr'
 require 'pg'
 require 'parseconfig'
 
