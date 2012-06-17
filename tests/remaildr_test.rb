@@ -9,7 +9,9 @@ end
 class TestRemaildr < Test::Unit::TestCase
 	def setup
 		mails = []
-		tos = ['10mn@remaildr.com', 'wrongaddress@remaildr.com', '500days@remaildr.com' ]
+		tos = ['10mn@remaildr.com', 'wrongaddress@remaildr.com', '500days@remaildr.com',
+			'20minutes@remaildr.com', '30m@remaildr.com', '1h@remaildr.com', '1d@remaildr.com',
+			'25h@remaildr.com', '3days@remaildr.com', '300dias@remaildr.com']
 		tos.each do |to_address|
 			mail = Mail.new do
 				from    'someone@example.com'
@@ -34,6 +36,12 @@ class TestRemaildr < Test::Unit::TestCase
 		assert @remaildrs[0].send_at < in15mn
 		# Actually sending back
 		assert @remaildrs[0].send!
+	end
+
+	def test_times
+		(3..8).each do |i|
+			assert @remaildrs[i].send_at < @remaildrs[i+1].send_at
+		end
 	end
 
 	def test_invalid_remaildr
