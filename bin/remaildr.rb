@@ -6,9 +6,10 @@ require 'mail'
 # plus some helper methods to build it up.
 class Remaildr
 	attr_accessor :orig_mail, :remaildr, :send_at
-	def initialize(orig_mail)
+	def initialize(orig_mail, max_time)
+		@max_time = max_time.to_i
 		@orig_mail = orig_mail
-		@remaildr = @orig_mail.dup
+		@remaildr = Mail.new(@orig_mail.encoded)
 		# Now we duplicated the incoming mail, let's scrape the data we don't want to keep
 		@remaildr.received = nil
 		@remaildr.message_id = nil
@@ -20,10 +21,10 @@ class Remaildr
 		@remaildr.to = @orig_mail.from.first
 		@remaildr.from = "Remaildr <remind@remaildr.com>"
 		@remaildr.subject = if @orig_mail.subject != nil # Beware of the nil access. Mail makes subject "nil" when empty
-					    "Remaildr: " + @orig_mail.subject
-				    else
-					    "Remaildr"
-				    end
+							"Remaildr: " + @orig_mail.subject
+						else
+							"Remaildr"
+						end
 		# Detects if the remaildr is valid and computes when to send it, based
 		# on the address it was sent to and when it arrived
 		compute_delay
@@ -34,10 +35,13 @@ class Remaildr
 	end
 
 	# Forward the messages who don't conform to time@remaildr
-	def forward!
+	def prepare_forward
 		@remaildr.subject = "#{@remaildr.subject} (from #{@orig_mail.from.first} to #{remaildr_address})"
 		@remaildr.to = "florent"
-		@remaildr.deliver!
+	end
+	def forward!
+		prepare_forward
+		send!
 	end
 
 	def valid_remaildr?
@@ -66,7 +70,7 @@ class Remaildr
 		end
 		# only accept if the delay is between now and 30 days
 		if @remaildr_detected
-			if (0..30) === delay
+			if (0..max_time) === delay
 				@send_at = received_at + delay
 			else
 				@remaildr_detected = false
