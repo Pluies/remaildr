@@ -21,7 +21,7 @@ class TestRemaildr < Test::Unit::TestCase
 			mail['X-original-to'] = to_address
 			mails << mail
 		end
-		@remaildrs = mails.map{|m| Remaildr.new m }
+		@remaildrs = mails.map{|m| Remaildr.new m, 365 }
 	end
 
 	def test_valid_remaildr
@@ -58,7 +58,7 @@ class TestRemaildr < Test::Unit::TestCase
 		end
 		mail['X-original-to'] = 'wrongdomain@example.com'
 		assert_raise RuntimeError do
-			Remaildr.new(mail)
+			Remaildr.new(mail, 365)
 		end
 	end
 end

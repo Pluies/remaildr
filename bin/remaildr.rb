@@ -70,7 +70,7 @@ class Remaildr
 		end
 		# only accept if the delay is between now and 30 days
 		if @remaildr_detected
-			if (0..max_time) === delay
+			if (0..@max_time) === delay
 				@send_at = received_at + delay
 			else
 				@remaildr_detected = false
