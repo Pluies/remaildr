@@ -53,20 +53,20 @@ class Remaildr
 		received_at = @orig_mail.date
 		@remaildr_detected = false		
 		delay = 0.0
-		if sent_to =~ /test/i
+		if m = /test/i.match(sent_to)
 			@remaildr_detected = true
 		end
-		if sent_to =~ /(\d+)(mn?|mi?n|minute|minuta)s?/i
+		if m = /(\d+)(mn?|mi?n|minute|minuta)s?/i.match(sent_to)
 			@remaildr_detected = true
-			delay += ($1.to_i)/24.0/60.0
+			delay += (m[1].to_i)/24.0/60.0
 		end
-		if sent_to =~ /(\d+)(hr?|hour|heure|hora|stunde)s?/i
+		if m = /(\d+)(hr?|hour|heure|hora|stunde)s?/i.match(sent_to)
 			@remaildr_detected = true
-			delay += ($1.to_i)/24.0
+			delay += (m[1].to_i)/24.0
 		end
-		if sent_to =~ /(\d+)(d|day|j|jour|dia|tag)s?/i
+		if m = /(\d+)(d|day|j|jour|dia|tag)s?/i.match(sent_to)
 			@remaildr_detected = true
-			delay += $1.to_i
+			delay += m[1].to_i
 		end
 		# only accept if the delay is between now and 30 days
 		if @remaildr_detected
