@@ -33,7 +33,7 @@ Daemons.run_proc('sendr.rb', daemon_options) do
 	loop do
 		# Send any email that need sending
 		begin
-			result = db.exec("SELECT id, send_at, msg FROM remaildrs WHERE send_at < $1", [DateTime.now.strftime('%Y-%m-%d %H:%M:%S')])
+			result = db.exec("SELECT id, send_at, msg FROM remaildrs WHERE send_at < current_timestamp at time zone 'utc'")
 		rescue
 			log.error "Can't get mail from DB"
 		end

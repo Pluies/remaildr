@@ -60,7 +60,7 @@ Daemons.run_proc('receivr.rb', daemon_options) do
 			log.info "SENT_TO " + new_mail.remaildr_address
 			if new_mail.valid_remaildr?
 				# We need to format the string prettily for Postgres
-				send_at_str = new_mail.send_at.new_offset(0).strftime('%Y-%m-%d %H:%M:%S')
+				send_at_str = new_mail.send_at.to_time.utc.strftime('%Y-%m-%d %H:%M:%S')
 				log.debug send_at_str
 				begin
 					db.exec("INSERT INTO remaildrs(send_at, msg) VALUES($1, $2)",
