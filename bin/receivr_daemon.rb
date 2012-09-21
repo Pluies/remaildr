@@ -55,7 +55,12 @@ Daemons.run_proc('receivr.rb', daemon_options) do
 
 		# Check POP account for new mails
 		inbox.each do |received_mail|
-			new_mail = Remaildr.new received_mail, config['remaildr']['max_time_in_days'].to_i
+			begin
+				new_mail = Remaildr.new received_mail, config['remaildr']['max_time_in_days'].to_i
+			rescue Encoding::UndefinedConversionError => e
+				log.error 'Encoding issue, skipping message.'
+				next
+			end
 			log.debug new_mail.remaildr.to_s
 			log.info "SENT_TO " + new_mail.remaildr_address
 			if new_mail.valid_remaildr?
