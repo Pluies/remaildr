@@ -36,9 +36,6 @@ Daemons.run_proc('receivr.rb', daemon_options) do
 		delivery_method :sendmail
 	end
 
-	db = PGconn.open(:dbname   => config['db']['db_name'],
-				  :user     => config['db']['user'],
-				  :password => config['db']['password'])
 	log = Logger.new base+'logs/receivr.log', 10, 2048000
 	log.level = Logger::INFO
 	log.info "Launching receivr daemon..."
@@ -54,30 +51,43 @@ Daemons.run_proc('receivr.rb', daemon_options) do
 		end
 
 		# Check POP account for new mails
-		inbox.each do |received_mail|
-			begin
-				new_mail = Remaildr.new received_mail, config['remaildr']['max_time_in_days'].to_i
-			rescue Encoding::UndefinedConversionError => e
-				log.error 'Encoding issue, skipping message.'
-				next
-			end
-			log.debug new_mail.remaildr.to_s
-			log.info "SENT_TO " + new_mail.remaildr_address
-			if new_mail.valid_remaildr?
-				# We need to format the string prettily for Postgres
-				send_at_str = new_mail.send_at.to_time.utc.strftime('%Y-%m-%d %H:%M:%S')
-				log.debug send_at_str
+		catch :db_error do
+			inbox.each do |received_mail|
 				begin
-					db.exec("INSERT INTO remaildrs(send_at, msg) VALUES($1, $2)",
-						[send_at_str, Base64.encode64(Marshal.dump(new_mail.remaildr))])
-				rescue
-					log.error "Problem while inserting mail into DB: " + new_mail
+					new_mail = Remaildr.new received_mail, config['remaildr']['max_time_in_days'].to_i
+				rescue Encoding::UndefinedConversionError => e
+					log.error 'Encoding issue, skipping message.'
+					next
 				end
-			else
-				new_mail.forward!
+				log.debug new_mail.remaildr.to_s
+				log.info "SENT_TO " + new_mail.remaildr_address
+				if new_mail.valid_remaildr?
+					# We need to format the string prettily for Postgres
+					send_at_str = new_mail.send_at.to_time.utc.strftime('%Y-%m-%d %H:%M:%S')
+					log.debug send_at_str
+
+					attempts = 0
+					begin
+						db = PGconn.open(:dbname   => config['db']['db_name'],
+									  :user     => config['db']['user'],
+									  :password => config['db']['password'])
+						db.exec("INSERT INTO remaildrs(send_at, msg) VALUES($1, $2)",
+							   [send_at_str, Base64.encode64(Marshal.dump(new_mail.remaildr))])
+					rescue
+						attempts += 1
+						retry unless attempts > 3
+						log.error "Can't put mail into DB - sleeping for #{config['db']['minutesToSleepWhenIssue']} minute(s)"
+						sleep config['db']['minutesToSleepWhenIssue'].to_i * 60
+						throw :db_error
+					ensure
+						db.close unless db.nil?
+					end
+				else
+					new_mail.forward!
+				end
 			end
+			Mail.delete_all
 		end
-		Mail.delete_all
 
 		sleep 10
 	end
