@@ -68,7 +68,15 @@ class Remaildr
 			@remaildr_detected = true
 			delay += m[1].to_i
 		end
-		# only accept if the delay is between now and 30 days
+		if m = /(\d+)(w|w(ee)?k|semaine|semana|woche)s?/i.match(sent_to)
+			@remaildr_detected = true
+			delay += (m[1].to_i) * 7
+		end
+		if m = /(\d+)(m(on)?th|mois|mes|monat)s?/i.match(sent_to)
+			@remaildr_detected = true
+			delay += (m[1].to_i) * 31 # Will be correct 58.⅓ of the time.
+		end
+		# only accept if the delay is between now and @max_time
 		if @remaildr_detected
 			if (0..@max_time) === delay
 				@send_at = received_at + delay
