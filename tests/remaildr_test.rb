@@ -10,8 +10,10 @@ class TestRemaildr < Test::Unit::TestCase
 	def setup
 		mails = []
 		tos = ['10mn@remaildr.com', 'wrongaddress@remaildr.com', '500days@remaildr.com',
-			'20minutes@remaildr.com', '30m@remaildr.com', '1h@remaildr.com', '1d@remaildr.com',
-			'25h@remaildr.com', '3days@remaildr.com', '300dias@remaildr.com']
+			'20minutes@remaildr.com', '30m@remaildr.com', '1h@remaildr.com',
+			'1d@remaildr.com', '25h@remaildr.com', '3days@remaildr.com',
+			'1week@remaildr.com', '10jours@remaildr.com', '5wks@remaildr.com',
+			'3months@remaildr.com', '300dias@remaildr.com']
 		tos.each do |to_address|
 			mail = Mail.new do
 				from    'someone@example.com'
@@ -23,7 +25,8 @@ class TestRemaildr < Test::Unit::TestCase
 			mail['X-original-to'] = to_address
 			mails << mail
 		end
-		@remaildrs = mails.map{|m| Remaildr.new m, 365 }
+		@remaildrs         = mails[0 .. 2].map{|m| Remaildr.new m, 365 }
+		@correct_remaildrs = mails[3..999].map{|m| Remaildr.new m, 365 }
 	end
 
 	def test_valid_remaildr
@@ -39,8 +42,10 @@ class TestRemaildr < Test::Unit::TestCase
 	end
 
 	def test_times
-		(3..8).each do |i|
-			assert @remaildrs[i].send_at < @remaildrs[i+1].send_at
+		(1 ... @correct_remaildrs.length).each do |i|
+			(m1, m2) = @correct_remaildrs[i-1], @correct_remaildrs[i]
+			assert m1.send_at < m2.send_at,
+				"Mail ##{i-1} to #{m1.orig_mail.to} is set to be sent before mail ##{i} to #{m2.orig_mail.to}"
 		end
 	end
 
