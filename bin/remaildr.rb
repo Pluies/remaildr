@@ -74,7 +74,7 @@ class Remaildr
 		end
 		if m = /(\d+)(m(on)?th|mois|mes|monat)s?/i.match(sent_to)
 			@remaildr_detected = true
-			delay += (m[1].to_i) * 31 # Will be correct 58.⅓ of the time.
+			delay += (m[1].to_i) * 31 # Will be correct 58.⅓% of the time.
 		end
 		# only accept if the delay is between now and @max_time
 		if @remaildr_detected
