@@ -56,6 +56,7 @@ class Remaildr
 		if m = /test/i.match(sent_to)
 			@remaildr_detected = true
 		end
+		# Match relative times
 		if m = /(\d+)(mn?|mi?n|minute|minuta)s?/i.match(sent_to)
 			@remaildr_detected = true
 			delay += (m[1].to_i)/24.0/60.0
@@ -75,6 +76,15 @@ class Remaildr
 		if m = /(\d+)(m(on)?th|mois|mes|monat)s?/i.match(sent_to)
 			@remaildr_detected = true
 			delay += (m[1].to_i) * 31 # Will be correct 58.⅓% of the time.
+		end
+		# Match next(...)
+		if m = /^next(.*)$/i.match(sent_to)
+			if /month/.match(m)
+				delay += 31
+			end
+			if /(mon|tues|wednes|thurs|fri|satur|sun)day/i.match(m)
+				# TODO
+			end
 		end
 		# only accept if the delay is between now and @max_time
 		if @remaildr_detected
@@ -115,5 +125,12 @@ class Remaildr
 		error_message += ", BCC: #{@orig_mail.bcc}" if @orig_mail.bcc
 		raise error_message
 	end
+
+	# Class methods
+	def Remaildr.blacklisted? address, blacklist
+		# Blacklist is provided as a comma-separated string of things @remaildr.com
+		return blacklist.split(',').map{|e| e + "@remaildr.com" }.include? address
+	end
+
 end
 

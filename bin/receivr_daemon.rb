@@ -42,7 +42,7 @@ Daemons.run_proc('receivr.rb', daemon_options) do
 
 
 	loop do
-		# Check the inbox. We use the "inbox" variable instead of multiple 
+		# Check the inbox. We use the "inbox" variable instead of multiple
 		# Mail.all calls in order to avoid multiple POP requests
 		inbox = Mail.all
 
@@ -53,14 +53,23 @@ Daemons.run_proc('receivr.rb', daemon_options) do
 		# Check POP account for new mails
 		catch :db_error do
 			inbox.each do |received_mail|
+
 				begin
 					new_mail = Remaildr.new received_mail, config['remaildr']['max_time_in_days'].to_i
 				rescue Encoding::UndefinedConversionError => e
 					log.error 'Encoding issue, skipping message.'
 					next
 				end
+
 				log.debug new_mail.remaildr.to_s
 				log.info "SENT_TO " + new_mail.remaildr_address
+
+				if Remaildr.blacklisted? new_mail.remaildr_address, config['remaildr']['blacklist']
+					# BOOM! Blacklisted.
+					log.info "Email sent to blacklisted address #{new_mail.remaildr_address}, dropping"
+					next
+				end
+
 				if new_mail.valid_remaildr?
 					# We need to format the string prettily for Postgres
 					send_at_str = new_mail.send_at.to_time.utc.strftime('%Y-%m-%d %H:%M:%S')
