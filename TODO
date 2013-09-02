@@ -1,2 +1,6 @@
 # Find out a way to get day of the week from date
 # Extract date from incoming message (to get current sender time rather than server time)
+
+# Add seconds for compatibility reasons.
+
+# Make better tests, notably automate sending an email to test@remaildr and making sure it gets sent back after a certain period of time (say 5mn, after which we can be sure that the server is down somehow)
