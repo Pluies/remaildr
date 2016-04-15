@@ -82,10 +82,11 @@ Daemons.run_proc('receivr.rb', daemon_options) do
                              :password => config['db']['password'])
             db.exec("INSERT INTO remaildrs(send_at, msg) VALUES($1, $2)",
                     [send_at_str, Base64.encode64(Marshal.dump(new_mail.remaildr))])
-          rescue
+          rescue => error
             attempts += 1
             retry unless attempts > 3
             log.error "Can't put mail into DB - sleeping for #{config['db']['minutesToSleepWhenIssue']} minute(s)"
+            log.error error.to_s
             sleep config['db']['minutesToSleepWhenIssue'].to_i * 60
             throw :db_error
           ensure
