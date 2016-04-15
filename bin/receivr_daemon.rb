@@ -1,6 +1,5 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 
-require 'rubygems'
 require 'base64'
 require 'daemons'
 require 'date'
@@ -58,6 +57,7 @@ Daemons.run_proc('receivr.rb', daemon_options) do
 					new_mail = Remaildr.new received_mail, config['remaildr']['max_time_in_days'].to_i
 				rescue Encoding::UndefinedConversionError => e
 					log.error 'Encoding issue, skipping message.'
+					log.error e.to_s
 					next
 				end
 

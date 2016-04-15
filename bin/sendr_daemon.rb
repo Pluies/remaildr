@@ -1,6 +1,5 @@
-#!/usr/bin/ruby
+#!/usr/bin/env ruby
 
-require 'rubygems'
 require 'base64'
 require 'daemons'
 require 'date'
